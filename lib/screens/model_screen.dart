@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-// Import the shared data structure
-import 'company_screen.dart';
-// Import the final screen
-import 'customize_screen.dart';
+import 'customize_screen.dart'; // <--- THIS IMPORT IS CRITICAL
 
 class ModelScreen extends StatefulWidget {
-  final String selectedYear;
-  final String selectedCompanyId;
+  final String companyId;   // e.g., 'honda'
+  final String companyName; // e.g., 'Honda'
 
   const ModelScreen({
     super.key,
-    required this.selectedYear,
-    required this.selectedCompanyId,
+    required this.companyId,
+    required this.companyName,
   });
 
   @override
@@ -19,34 +16,47 @@ class ModelScreen extends StatefulWidget {
 }
 
 class _ModelScreenState extends State<ModelScreen> {
-  late String _companyDisplayName;
-  // Now stores a list of Maps, each like {'name': 'City', 'tagline': '...'}
-  late List<Map<String, String>> _availableModels;
+  // This Map defines exactly which models appear for each company
+  final Map<String, List<Map<String, String>>> modelsData = {
+    'honda': [
+      {
+        'name': 'City (2021-2025)',
+        'folder': 'city_2021_2025', // Must match your folder name in assets
+        'tagline': 'Aspire / 1.2 / 1.5',
+      },
+    ],
+    'toyota': [
+      {
+        'name': 'Corolla Grande (2020-2025)',
+        'folder': 'corolla_2020_2025',
+        'tagline': 'Altis / Grande X',
+      },
+    ],
+    'haval': [
+      {
+        'name': 'Haval H6 (2020-2025)',
+        'folder': 'h6_2020_2025',
+        'tagline': 'HEV / 1.5T / 2.0T',
+      },
+    ],
+  };
+
+  List<Map<String, String>> _currentModels = [];
 
   @override
   void initState() {
     super.initState();
-    // Initialize data
-    _companyDisplayName = carData[widget.selectedCompanyId]?['name'] ?? widget.selectedCompanyId;
-
-    // Safely get the list of model maps
-    final modelsData = carData[widget.selectedCompanyId]?['models']?[widget.selectedYear];
-    if (modelsData is List) {
-      // Ensure each item in the list is the expected Map format
-      _availableModels = modelsData
-          .whereType<Map>() // Filter out any non-map items
-          .map((modelMap) => Map<String, String>.from(modelMap)) // Convert to the correct type
-          .toList();
-    } else {
-      _availableModels = []; // Default to empty list if data is missing/wrong
-    }
+    // Load the models for the selected company ID
+    _currentModels = modelsData[widget.companyId] ?? [];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SALOMODS'),
+        title: Text('${widget.companyName} Models'),
+        backgroundColor: const Color(0xFF101D42), // Matches gradient start
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, size: 18),
           onPressed: () => Navigator.of(context).pop(),
@@ -57,67 +67,60 @@ class _ModelScreenState extends State<ModelScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
+            colors: [Color(0xFF101D42), Color(0xFF1E3A8A)],
           ),
         ),
-        child: _availableModels.isEmpty
-            ? Center( // Show message if no models
+        child: _currentModels.isEmpty
+            ? Center(
           child: Text(
-            'No models found for\n$_companyDisplayName ${widget.selectedYear}',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.yellow),
+            'Coming Soon!',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white54),
           ),
         )
-            : ListView( // Display list of models
+            : ListView.builder(
           padding: const EdgeInsets.all(24.0),
-          children: [
-            Text('Select Car Model', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium,),
-            const SizedBox(height: 8),
-            Text('$_companyDisplayName ${widget.selectedYear}', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall,),
-            const SizedBox(height: 40),
+          itemCount: _currentModels.length,
+          itemBuilder: (context, index) {
+            final car = _currentModels[index];
 
-            // Create a button for each available model map
-            ..._availableModels.map((modelInfo) {
-              final modelName = modelInfo['name'] ?? 'Unknown Model';
-              final modelTagline = modelInfo['tagline'] ?? ''; // Get tagline
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: _ModelButton( // Use helper widget
-                  title: modelName,
-                  subtitle: modelTagline, // Pass tagline to button
-                  onPressed: () {
-                    // Navigate to the final CustomizeScreen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CustomizeScreen(
-                          selectedYear: widget.selectedYear,
-                          selectedCompany: _companyDisplayName,
-                          selectedModel: modelName,
-                          // Pass a default/placeholder variant for now
-                          selectedVariant: 'Standard', // Example default
-                        ),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: _ModelButton(
+                title: car['name']!,
+                subtitle: car['tagline']!,
+                onPressed: () {
+                  // Navigate to CustomizeScreen with the correct Folder Path
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CustomizeScreen(
+                        companyName: widget.companyName,
+                        modelName: car['name']!,
+                        folderName: car['folder']!,
                       ),
-                    );
-                  },
-                ),
-              );
-            }).toList(),
-          ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-// Helper widget for the model button's appearance
+// Helper Widget for the Buttons
 class _ModelButton extends StatelessWidget {
   final String title;
-  final String subtitle; // Added subtitle for tagline
+  final String subtitle;
   final VoidCallback onPressed;
 
-  const _ModelButton({required this.title, required this.subtitle, required this.onPressed});
+  const _ModelButton({
+    required this.title,
+    required this.subtitle,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -127,39 +130,36 @@ class _ModelButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.2), // Simple background
+          color: Colors.black.withOpacity(0.3), // Slightly darker for contrast
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[800]!), // Simple border
+          border: Border.all(color: Colors.blueAccent.withOpacity(0.3)), // Subtle blue border
         ),
         child: Row(
           children: [
             Expanded(
-              child: Column( // Use Column for title and subtitle
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (subtitle.isNotEmpty) // Only show subtitle if it exists
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: Colors.grey[400], // Lighter text for tagline
-                          fontSize: 12,
-                        ),
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 12,
                     ),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios, color: Colors.grey[600], size: 16),
+            const Icon(Icons.arrow_forward_ios, color: Colors.blueAccent, size: 16),
           ],
         ),
       ),

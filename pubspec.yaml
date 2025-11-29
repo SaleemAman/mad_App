@@ -23,4 +23,7 @@ flutter:
   # --- Assets Section ---
   # Loads all images in this specific folder
   assets:
-    - assets/images/honda_city/2022/
+    - assets/logos/
+    - assets/images/honda/city_2021_2025/
+    - assets/images/toyota/corolla_2020_2025/
+    - assets/images/haval/h6_2020_2025/

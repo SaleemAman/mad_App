@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 
 class CustomizeScreen extends StatefulWidget {
-  // Receives data from the ModelScreen
-  final String selectedYear;
-  final String selectedCompany; // Display name (e.g., "Honda")
-  final String selectedModel; // Model name (e.g., "City")
-  final String selectedVariant; // Engine variant (e.g., "Standard")
+  final String companyName;
+  final String modelName;
+  final String folderName;
 
   const CustomizeScreen({
     super.key,
-    required this.selectedYear,
-    required this.selectedCompany,
-    required this.selectedModel,
-    required this.selectedVariant,
+    required this.companyName,
+    required this.modelName,
+    required this.folderName,
   });
 
   @override
@@ -20,216 +17,309 @@ class CustomizeScreen extends StatefulWidget {
 }
 
 class _CustomizeScreenState extends State<CustomizeScreen> {
-  // --- STATE VARIABLES for customization ---
+  // --- STATE VARIABLES ---
   String _currentView = 'front';
   String _packageType = 'stock';
   String _interiorColor = 'beige';
 
-  // --- LOGIC TO GET LOCAL ASSET PATH ---
+  // --- PATH GENERATOR ---
   String getCurrentImagePath() {
-    // !! IMPORTANT !! - This is still HARDCODED to your Honda City 2022 assets
-    // because those are the only visual assets available in the project.
-    // Selecting "Toyota Corolla" will still show the Honda City for now.
-    String carIdentifier = 'honda_city';
-    String yearIdentifier = '2022';
-    String carPath = 'assets/images/$carIdentifier/$yearIdentifier/';
+    String companyFolder = widget.companyName.toLowerCase();
+    String modelFolder = widget.folderName;
+    String basePath = 'assets/images/$companyFolder/$modelFolder/';
 
     String filename;
     if (_currentView == 'interior') {
-      filename = _packageType == 'stock'
-          ? 'stock_interior.jpg'
-          : (_interiorColor == 'burgundy'
-          ? 'sport_interior_burgundy.jpg'
-          : 'sport_interior_black.jpg');
-    } else { // Exterior view
+      if (_packageType == 'stock') {
+        filename = 'stock_interior.jpg';
+      } else {
+        if (_interiorColor == 'burgundy') filename = 'sport_interior_burgundy.jpg';
+        else if (_interiorColor == 'black') filename = 'sport_interior_black.jpg';
+        else filename = 'sport_interior_burgundy.jpg';
+      }
+    } else {
       filename = '${_packageType}_$_currentView.jpg';
     }
-    // Example path: "assets/images/honda_city/2022/stock_front.jpg"
-    return '$carPath$filename';
+    return '$basePath$filename';
   }
 
-  // --- LOGIC FOR CONDITIONAL BUTTONS ---
-  bool _showInteriorSelector() {
-    return _currentView == 'interior' && _packageType == 'sport';
-  }
-  bool _isInteriorStockBeige() {
-    return _currentView == 'interior' && _packageType == 'stock';
-  }
-
-  // Update package and corresponding interior state
   void _updatePackage(String newPackage) {
     setState(() {
       _packageType = newPackage;
+      // Reset interior logic when switching packages
       if (newPackage == 'stock') {
         _interiorColor = 'beige';
-      } else { // Sport
-        if (_interiorColor == 'beige') {
-          _interiorColor = 'burgundy'; // Default to burgundy when switching to Sport
-        }
+      } else {
+        if (_interiorColor == 'beige') _interiorColor = 'burgundy';
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // --- DEFINE STYLES based on current state ---
     bool isSport = _packageType == 'sport';
-    Color controlPanelColor = isSport ? Theme.of(context).colorScheme.surface : Colors.white;
-    Color headingColor = isSport ? Colors.red[400]! : Colors.black87;
-    Color labelColor = isSport ? Colors.red[400]! : Colors.grey[700]!;
+
+    // --- THEME COLORS ---
+    // STOCK THEME (Light & Classy)
+    Color stockPanelColor = const Color(0xFFF5F7FA); // Light Grey-Blue
+    Color stockTextColor = const Color(0xFF101D42);  // Navy Text
+    Color stockAccentColor = const Color(0xFF101D42); // Navy Blue Buttons
+
+    // SPORT THEME (Dark & Aggressive)
+    Color sportPanelColor = const Color(0xFF101D42); // Navy Background
+    Color sportTextColor = Colors.white;             // White Text
+    Color sportAccentColor = const Color(0xFFFF3B30); // Bright Red Buttons
+
+    // --- CURRENT ACTIVE COLORS ---
+    Color currentPanelColor = isSport ? sportPanelColor : stockPanelColor;
+    Color currentTextColor = isSport ? sportTextColor : stockTextColor;
+    Color currentAccentColor = isSport ? sportAccentColor : stockAccentColor;
+    Color currentInactiveColor = isSport ? Colors.white38 : Colors.grey[400]!;
 
     return Scaffold(
+      backgroundColor: Colors.white, // Keep image bg white for JPEGs
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        // Display Selected Car Info in the AppBar
-        title: Text(
-          '${widget.selectedCompany} ${widget.selectedModel}',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        titleSpacing: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Center(
-              child: Text(
-                '${widget.selectedYear} ${isSport ? '⚡' : ''}',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isSport ? Colors.red[400] : Colors.blue[300],
-                ),
-              ),
+        title: Column(
+          children: [
+            Text(
+              widget.modelName,
+              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
             ),
-          ),
-        ],
+            Text(
+              widget.companyName,
+              style: TextStyle(color: Colors.grey[500], fontSize: 12, letterSpacing: 1.0),
+            ),
+          ],
+        ),
+        centerTitle: true,
       ),
 
-      // --- MAIN BODY ---
       body: Column(
         children: [
-          // --- IMAGE VIEWER ---
+          // --- 1. IMMERSIVE IMAGE AREA ---
           Expanded(
-            child: Container(
-              color: Colors.white, // White background for image contrast
-              width: double.infinity,
-              padding: const EdgeInsets.all(8.0),
+            child: InteractiveViewer(
+              minScale: 1.0,
+              maxScale: 4.0,
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
+                duration: const Duration(milliseconds: 500),
                 transitionBuilder: (Widget child, Animation<double> animation) {
-                  return FadeTransition(
-                    opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
-                    child: child,
-                  );
+                  return FadeTransition(opacity: animation, child: child);
                 },
-                child: Image.asset(
-                  getCurrentImagePath(),
+                child: Container(
                   key: ValueKey(getCurrentImagePath()),
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Center(child: Text('Error: Image asset not found!\nCheck path: ${getCurrentImagePath()}', textAlign: TextAlign.center, style: TextStyle(color: Colors.red, fontSize: 10)));
-                  },
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(getCurrentImagePath()),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
 
-          // --- CONTROL PANEL ---
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+          // --- 2. DYNAMIC CONTROL PANEL ---
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
             decoration: BoxDecoration(
-              color: controlPanelColor,
-              borderRadius: const BorderRadius.only( topLeft: Radius.circular(24), topRight: Radius.circular(24)),
-              boxShadow: [ BoxShadow( color: Colors.black.withOpacity(0.1), blurRadius: 10, spreadRadius: 2)],
+              color: currentPanelColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                )
+              ],
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0, bottom: 16.0),
-                  child: Text( 'CUSTOMIZE ${isSport ? '⚡' : ''}', style: TextStyle( fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: headingColor)),
-                ),
-                // View Buttons
-                Row(
-                  children: [
-                    _buildControlButton(context, 'Front', _currentView == 'front', isSport, () => setState(() => _currentView = 'front')),
-                    const SizedBox(width: 10),
-                    _buildControlButton(context, 'Back', _currentView == 'back', isSport, () => setState(() => _currentView = 'back')),
-                    const SizedBox(width: 10),
-                    _buildControlButton(context, 'Interior', _currentView == 'interior', isSport, () => setState(() => _currentView = 'interior')),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Package Buttons
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
-                  child: Text( 'Package', style: TextStyle(color: labelColor, fontWeight: FontWeight.bold, fontSize: 12)),
-                ),
-                Row(
-                  children: [
-                    _buildControlButton(context, 'Stock', _packageType == 'stock', isSport, () => _updatePackage('stock')),
-                    const SizedBox(width: 10),
-                    _buildControlButton(context, 'Sport ⚡', _packageType == 'sport', isSport, () => _updatePackage('sport')),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Interior Color Buttons (Conditional)
-                AnimatedOpacity(
-                  opacity: (_showInteriorSelector() || _isInteriorStockBeige()) ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeInOut,
-                  child: Visibility(
-                    visible: (_showInteriorSelector() || _isInteriorStockBeige()),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
-                          child: Text( 'Interior', style: TextStyle(color: labelColor, fontWeight: FontWeight.bold, fontSize: 12)),
-                        ),
-                        Row(
-                          children: [
-                            _buildControlButton(context, 'Beige', _isInteriorStockBeige(), isSport, null),
-                            const SizedBox(width: 10),
-                            _buildControlButton(context, 'Burgundy', _interiorColor == 'burgundy' && !_isInteriorStockBeige(), isSport, _isInteriorStockBeige() ? null : () => setState(() => _interiorColor = 'burgundy')),
-                            const SizedBox(width: 10),
-                            _buildControlButton(context, 'Black', _interiorColor == 'black' && !_isInteriorStockBeige(), isSport, _isInteriorStockBeige() ? null : () => setState(() => _interiorColor = 'black')),
-                          ],
-                        ),
-                      ],
-                    ),
+                // --- VIEW ANGLE SELECTOR ---
+                _buildSectionTitle("VIEW ANGLE", currentTextColor),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isSport ? Colors.white.withOpacity(0.1) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: isSport ? null : Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildTabButton('Front', _currentView == 'front', currentAccentColor, isSport, () => setState(() => _currentView = 'front')),
+                      _buildTabButton('Back', _currentView == 'back', currentAccentColor, isSport, () => setState(() => _currentView = 'back')),
+                      _buildTabButton('Interior', _currentView == 'interior', currentAccentColor, isSport, () => setState(() => _currentView = 'interior')),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 24),
+
+                // --- MODE & COLOR ROW ---
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // MODE SWITCH
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle("MODE", currentTextColor),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              _buildModeButton("Stock", false, _packageType == 'stock', currentAccentColor, currentTextColor, currentInactiveColor, () => _updatePackage('stock')),
+                              const SizedBox(width: 12),
+                              _buildModeButton("Sport", true, _packageType == 'sport', currentAccentColor, currentTextColor, currentInactiveColor, () => _updatePackage('sport')),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // INTERIOR COLORS (Only show if relevant)
+                    if (_currentView == 'interior' && isSport) ...[
+                      const SizedBox(width: 20),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle("LEATHER", currentTextColor),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                _buildColorCircle(const Color(0xFF682A2A), _interiorColor == 'burgundy', currentAccentColor, () => setState(() => _interiorColor = 'burgundy')), // Burgundy
+                                const SizedBox(width: 12),
+                                _buildColorCircle(Colors.black, _interiorColor == 'black', currentAccentColor, () => setState(() => _interiorColor = 'black')),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 20),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-  // --- Reusable Helper Widget for building all buttons ---
-  Widget _buildControlButton(BuildContext context, String text, bool isSelected, bool isSportMode, VoidCallback? onPressed) {
-    Color bgColor, fgColor, borderColor = Colors.transparent;
-    double elevation = 0;
-    bgColor = Colors.grey[200]!; fgColor = Colors.black54;
-    if (isSelected) { bgColor = Colors.blue[600]!; fgColor = Colors.white; elevation = 2; }
-    if (isSportMode) { bgColor = Colors.grey[800]!.withOpacity(0.5); fgColor = Colors.grey[400]!; borderColor = Colors.grey[700]!; elevation = 0;
-    if (isSelected) { bgColor = Colors.red[600]!; fgColor = Colors.white; borderColor = Colors.red[400]!; elevation = 2; } }
-    if (onPressed == null) { bgColor = isSportMode ? Colors.grey[800]!.withOpacity(0.2) : Colors.grey[100]!; fgColor = isSportMode ? Colors.grey[600]! : Colors.grey[400]!; borderColor = isSportMode ? Colors.grey[700]!.withOpacity(0.5) : Colors.grey[300]!; elevation = 0; }
+  // --- HELPER WIDGETS ---
 
+  Widget _buildSectionTitle(String title, Color textColor) {
+    return AnimatedDefaultTextStyle(
+      duration: const Duration(milliseconds: 300),
+      style: TextStyle(
+        color: textColor.withOpacity(0.6),
+        fontSize: 10,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.5,
+      ),
+      child: Text(title),
+    );
+  }
+
+  Widget _buildTabButton(String text, bool isActive, Color activeColor, bool isSport, VoidCallback onTap) {
     return Expanded(
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: bgColor, foregroundColor: fgColor, disabledBackgroundColor: bgColor, disabledForegroundColor: fgColor, elevation: elevation,
-          shadowColor: isSelected ? (isSportMode ? Colors.red[900] : Colors.blue[900]) : Colors.transparent,
-          shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(isSportMode ? 8 : 12), side: BorderSide(color: borderColor, width: 1.0) ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isActive ? activeColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(
+              color: isActive ? Colors.white : (isSport ? Colors.white54 : Colors.grey[500]),
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
         ),
-        onPressed: onPressed,
-        child: Text( text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, )),
+      ),
+    );
+  }
+
+  Widget _buildModeButton(String text, bool isSportBtn, bool isActive, Color activeColor, Color textColor, Color inactiveColor, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: isActive ? activeColor : inactiveColor.withOpacity(0.3),
+              width: 1.5
+          ),
+          boxShadow: isActive ? [BoxShadow(color: activeColor.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] : [],
+        ),
+        child: Row(
+          children: [
+            if (isSportBtn) Icon(Icons.flash_on, color: isActive ? Colors.white : inactiveColor, size: 16),
+            if (isSportBtn) const SizedBox(width: 4),
+            Text(
+              text,
+              style: TextStyle(
+                color: isActive ? Colors.white : inactiveColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorCircle(Color color, bool isActive, Color borderColor, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+              color: isActive ? borderColor : Colors.transparent,
+              width: 2
+          ),
+        ),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4)],
+          ),
+          child: isActive
+              ? const Icon(Icons.check, color: Colors.white, size: 16)
+              : null,
+        ),
       ),
     );
   }

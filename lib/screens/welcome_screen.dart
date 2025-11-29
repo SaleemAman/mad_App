@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'year_screen.dart';
+import 'company_screen.dart'; // We import CompanyScreen instead of YearScreen
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -7,46 +7,63 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
-          ),
-        ),
-        child: Center(
+      backgroundColor: const Color(0xFF101D42), // Matches your app theme
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // This text already looked okay, but let's use the theme for consistency
-              Text(
+              // Logo or App Name
+              const Spacer(),
+              const Text(
                 'SALOMODS',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(letterSpacing: 2.0),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Customize Your Car',
-                style: Theme.of(context).textTheme.bodySmall, // Use theme style
-              ),
-              const SizedBox(height: 48),
-              // This button will now correctly get its white text color from the theme
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const YearScreen()),
-                  );
-                },
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Get Started'), // Text style is now handled by the theme
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward_ios, size: 14),
-                  ],
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 2.0,
                 ),
               ),
+              const SizedBox(height: 16),
+              const Text(
+                'Customize Your Dream Ride',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey,
+                ),
+              ),
+              const Spacer(),
+
+              // Get Started Button
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // FIXED: Navigate to CompanyScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => CompanyScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Get Started',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
