@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/welcome_screen.dart'; // Start screen
+import 'screens/welcome_screen.dart';
 
 void main() {
   runApp(const SaloModsApp());
@@ -13,69 +13,52 @@ class SaloModsApp extends StatelessWidget {
     return MaterialApp(
       title: 'SaloMods',
       debugShowCheckedModeBanner: false,
-      // --- THEME UPDATE ---
-      // This new, detailed theme will fix the color issues everywhere.
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A), // Dark navy background
-        fontFamily: 'Roboto',
+        scaffoldBackgroundColor: const Color(0xFF0F172A), // Deep Navy
+        fontFamily: 'Roboto', // Or your preferred font
+        useMaterial3: true,
 
-        // Define a consistent color scheme
+        // Color Palette
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFf97316), // Orange for accents
-          secondary: Color(0xFFd97706), // Amber for other accents
-          surface: Color(0xFF1E293B), // Dark slate for cards/panels
-          background: Color(0xFF0F172A), // Same as scaffold
-          onPrimary: Colors.white, // <-- FIX: Text on orange surfaces
-          onSecondary: Colors.white, // Text on amber surfaces
-          onSurface: Colors.white, // Text on cards/panels
-          onBackground: Colors.white, // Default text color
+          primary: Color(0xFF3B82F6),    // Bright Blue (Action)
+          secondary: Color(0xFFFF3B30),  // Red (Sport Accents)
+          surface: Color(0xFF1E293B),    // Card Backgrounds
+          background: Color(0xFF0F172A), // Main Background
+          onPrimary: Colors.white,
+          onSurface: Colors.white,
         ),
 
-        // Define consistent styles for all AppBars
+        // AppBar Styling
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0F172A), // Dark navy to match background
-          foregroundColor: Colors.white, // <-- FIX: Ensures title and icons are white
+          backgroundColor: Color(0xFF0F172A),
+          foregroundColor: Colors.white,
+          centerTitle: true,
           elevation: 0,
           titleTextStyle: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 1.5,
-            color: Colors.white, // <-- FIX: Explicitly set title color
-          ),
-        ),
-
-        // Define consistent styles for all Text
-        textTheme: TextTheme(
-          // For main screen titles like "Select Car Year"
-          titleMedium: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
             color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-          // For subtitles like "Choose the manufacturing year"
-          bodySmall: TextStyle(
-            color: Colors.blue[300],
-            fontSize: 14,
-          ),
-          // For button text
-          labelLarge: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.white, // <-- FIX: Explicitly set button text color
           ),
         ),
 
-        // Define consistent styles for all main action buttons
+        // Button Styling
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2563EB), // Bright blue
-            foregroundColor: Colors.white, // <-- FIX: Ensures text/icons on button are white
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            backgroundColor: const Color(0xFF3B82F6),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30.0),
+              borderRadius: BorderRadius.circular(16),
             ),
-            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            elevation: 8,
+            shadowColor: Colors.blue.withOpacity(0.5),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
           ),
         ),
       ),

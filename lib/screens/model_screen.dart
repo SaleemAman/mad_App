@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'customize_screen.dart'; // <--- THIS IMPORT IS CRITICAL
+import 'dart:convert'; // For JSON decoding
+import 'package:http/http.dart' as http; // For fetching data
+import 'package:flutter/foundation.dart'; // For checking Web vs Mobile
+import 'customize_screen.dart';
 
 class ModelScreen extends StatefulWidget {
   final String companyId;   // e.g., 'honda'
@@ -15,124 +18,173 @@ class ModelScreen extends StatefulWidget {
   State<ModelScreen> createState() => _ModelScreenState();
 }
 
-class _ModelScreenState extends State<ModelScreen> {
-  // This Map defines exactly which models appear for each company
-  final Map<String, List<Map<String, String>>> modelsData = {
-    'honda': [
-      {
-        'name': 'City (2021-2025)',
-        'folder': 'city_2021_2025', // Must match your folder name in assets
-        'tagline': 'Aspire / 1.2 / 1.5',
-      },
-    ],
-    'toyota': [
-      {
-        'name': 'Corolla Grande (2020-2025)',
-        'folder': 'corolla_2020_2025',
-        'tagline': 'Altis / Grande X',
-      },
-    ],
-    'haval': [
-      {
-        'name': 'Haval H6 (2020-2025)',
-        'folder': 'h6_2020_2025',
-        'tagline': 'HEV / 1.5T / 2.0T',
-      },
-    ],
-  };
-
-  List<Map<String, String>> _currentModels = [];
+class _ModelScreenState extends State<ModelScreen> with SingleTickerProviderStateMixin {
+  List<dynamic> _currentModels = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+  late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    // Load the models for the selected company ID
-    _currentModels = modelsData[widget.companyId] ?? [];
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    fetchCarModels();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // --- API CALL WITH WEB SUPPORT ---
+  Future<void> fetchCarModels() async {
+    String baseUrl;
+
+    if (kIsWeb) {
+      // Chrome/Web ke liye Localhost
+      baseUrl = 'http://localhost:3000';
+    } else {
+      // Android Emulator ke liye 10.0.2.2
+      baseUrl = 'http://10.0.2.2:3000';
+    }
+
+    final String url = '$baseUrl/api/cars/${widget.companyId}';
+
+    try {
+      print("Connecting to: $url");
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _currentModels = json.decode(response.body);
+          _isLoading = false;
+          _hasError = false;
+        });
+        _controller.forward(); // Start animation when data loads
+      } else {
+        print("Server Error: ${response.statusCode}");
+        setState(() { _hasError = true; _isLoading = false; });
+      }
+    } catch (e) {
+      print("Connection Error: $e");
+      setState(() { _hasError = true; _isLoading = false; });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        title: Text('${widget.companyName} Models'),
-        backgroundColor: const Color(0xFF101D42), // Matches gradient start
+        title: Text(
+          '${widget.companyName.toUpperCase()} MODELS',
+          style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, letterSpacing: 1.5),
+        ),
+        backgroundColor: const Color(0xFF0F172A),
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18),
+          icon: const Icon(Icons.arrow_back_ios, size: 18, color: Color(0xFF00E5FF)),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF101D42), Color(0xFF1E3A8A)],
-          ),
-        ),
-        child: _currentModels.isEmpty
-            ? Center(
-          child: Text(
-            'Coming Soon!',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white54),
-          ),
-        )
-            : ListView.builder(
-          padding: const EdgeInsets.all(24.0),
-          itemCount: _currentModels.length,
-          itemBuilder: (context, index) {
-            final car = _currentModels[index];
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: _ModelButton(
-                title: car['name']!,
-                subtitle: car['tagline']!,
-                onPressed: () {
-                  // Navigate to CustomizeScreen with the correct Folder Path
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CustomizeScreen(
-                        companyName: widget.companyName,
-                        modelName: car['name']!,
-                        folderName: car['folder']!,
-                      ),
-                    ),
-                  );
-                },
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF))) // Cyan Spinner
+          : _hasError
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off, color: Color(0xFF00E5FF), size: 60),
+            const SizedBox(height: 16),
+            const Text("Server Disconnected", style: TextStyle(color: Colors.white70)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: fetchCarModels,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F172A),
+                side: const BorderSide(color: Color(0xFF00E5FF)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
-            );
-          },
+              child: const Text("RETRY", style: TextStyle(color: Color(0xFF00E5FF))),
+            )
+          ],
         ),
+      )
+          : ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: _currentModels.length,
+        itemBuilder: (context, index) {
+          final car = _currentModels[index];
+
+          // Animations
+          final Animation<double> fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(parent: _controller, curve: Interval(index * 0.2, 1.0, curve: Curves.easeIn)),
+          );
+          final Animation<Offset> slideAnim = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+            CurvedAnimation(parent: _controller, curve: Interval(index * 0.2, 1.0, curve: Curves.easeOut)),
+          );
+
+          return FadeTransition(
+            opacity: fadeAnim,
+            child: SlideTransition(
+              position: slideAnim,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: _ModelCard(
+                  title: car['name']!,
+                  subtitle: car['tagline']!,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CustomizeScreen(
+                          companyName: widget.companyName,
+                          modelName: car['name']!,
+                          folderName: car['folder']!,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-// Helper Widget for the Buttons
-class _ModelButton extends StatelessWidget {
+class _ModelCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onPressed;
 
-  const _ModelButton({
-    required this.title,
-    required this.subtitle,
-    required this.onPressed,
-  });
+  const _ModelCard({required this.title, required this.subtitle, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onPressed,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.3), // Slightly darker for contrast
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blueAccent.withOpacity(0.3)), // Subtle blue border
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.4)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF00E5FF).withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 1,
+            )
+          ],
         ),
         child: Row(
           children: [
@@ -140,26 +192,13 @@ class _ModelButton extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
                   const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 12,
-                    ),
-                  ),
+                  Text(subtitle, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.blueAccent, size: 16),
+            const Icon(Icons.arrow_forward_ios, color: Color(0xFF00E5FF), size: 16),
           ],
         ),
       ),
